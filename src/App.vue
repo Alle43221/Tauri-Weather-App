@@ -1,42 +1,77 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, Ref } from "vue";
 import { invoke } from "@tauri-apps/api/tauri";
-import { listen } from '@tauri-apps/api/event'
+import { listen, emit } from '@tauri-apps/api/event'
 
-const displayedTemp = ref("");
-const displayedCity = ref("");
+
+const displayedTemp = ref(0);
+const displayedCity = ref("Targu Mures");
 const displayedIcon = ref("");
 const visible = ref(false);
 const favoriteCities = ref([]);
+const currentLatitude= ref(0);
+const currentLongitude =ref(0);
+const searchedLocation=ref("");
+const computerLatitude= ref(0);
+const computerLongitude= ref(0);
+const computerLocation=ref("");
 
+getFavorites();
 getCurrentLocationInformation();
+getInformation();
+getUpdated();
 
-async function getInformation() {
-  /* TO-DO (1)
-    Make a GET request (from Rust) to the Weather API and show the current temperature at these coordinates:
-      - latitude 36.71
-      - longitude -80.97
-    (HINT: https://openweathermap.org/current)
-  */
-
-  /* TO-DO (2)
-    Make a request to find the coordinates of Târgu Mureș and then show the current temperature there.
-    (HINT: https://openweathermap.org/api/geocoding-api)
-  */
+async function getFavorites() {
+  let mnv=await invoke ("getcontent");
+  favoriteCities.value=mnv.split(",");  
+  //console.log(getFavorites);
 }
 
-function getCurrentLocationInformation() {
-  /* TO-DO (3)
-    Using Geolocation API (in Typescript) and GET requests in Rust, show the user's current location
-    and the current temperature on the screen.
-    (HINT: https://developer.mozilla.org/en-US/docs/Web/API/Geolocation/getCurrentPosition)
-  */
+async function getInformation() {
+  visible.value=false;
+  let localCity;
+  if(searchedLocation.value!=""){
+    localCity=searchedLocation.value;
+  }else localCity=displayedCity.value;
+  let Coords : [number, number]=await invoke("get_coord_by_city", {city:localCity});
+  //console.log(Coords);
+  currentLatitude.value=Coords[0];
+  currentLongitude.value=Coords[1];
+  
+  //displayedTemp.value = await invoke("get_temperature", {latitude: 36.71, longitude:-80.97})
+  let mnv: string =await invoke("get_temperature", {latitude: currentLatitude.value, longitude: currentLongitude.value})
+  console.log(mnv);
+  displayedTemp.value = parseInt(mnv, 10);
+  displayedIcon.value= await invoke("get_icon", {latitude: currentLatitude.value, longitude: currentLongitude.value})
+  displayedCity.value=localCity;
+  visible.value=true;
+}
 
-  /* TO-DO (5)
-    Update the current location of the user and the current weather conditions every minute.
-    (HINT: use a separate thread in Rust that notifies the frontend to update the temperature;
-           and location display; you will need to use events: https://tauri.app/v1/guides/features/events/)
-  */
+async function useCurrentLocation() {
+  visible.value=false;
+  currentLatitude.value=computerLatitude.value;
+  currentLongitude.value=computerLongitude.value;
+  displayedCity.value=computerLocation.value;
+  displayedTemp.value = await invoke("get_temperature", {latitude: currentLatitude.value, longitude: currentLongitude.value})
+  displayedIcon.value= await invoke("get_icon", {latitude: currentLatitude.value, longitude: currentLongitude.value})
+  visible.value=true;
+}
+
+async function getUpdated(){
+  await invoke('init_process');
+    const unlisten=await listen('event-name', (event)=>{
+      getCurrentLocationInformation();
+      getInformation();
+      console.log("Updated info");
+    })
+}
+
+async function getCurrentLocationInformation() {
+    let info = await fetch("https://location.services.mozilla.com/v1/geolocate?key=test");
+    let infoProcessed = await info.json();
+    computerLatitude.value= infoProcessed["location"]["lat"];
+    computerLongitude.value= infoProcessed["location"]["lng"];
+    computerLocation.value= await invoke ("get_city_by_coord", {latitude: computerLatitude.value, longitude: computerLongitude.value});
 
   /* TO-DO (9)
     Be creative! Expand upon your app and add whatever functionalities you want.
@@ -45,17 +80,44 @@ function getCurrentLocationInformation() {
     the temperature changes, dynamic weather timeline, weather fetching in parallel for multiple cities etc.
   */
 }
+
+async function addToFavorites() {
+  if(favoriteCities.value.includes(displayedCity.value)==false){
+    favoriteCities.value.push(displayedCity.value); 
+    //console.log(favoriteCities.toString());
+    await invoke("writetofile", {text: favoriteCities.value.toString()});
+    getFavorites();
+  }
+}
+
+async function removeLocation(city: string) {
+  if(favoriteCities.value.includes(city)==true){
+    favoriteCities.value=favoriteCities.value.filter((e, i) => e !== city);
+    //console.log(favoriteCities.toString());
+    await invoke("writetofile", {text: favoriteCities.value.toString()});
+    getFavorites();
+  }
+}
+
+async function useSelectedLocation(city:string) {
+  searchedLocation.value=city;
+  getInformation();
+}
+
 </script>
 
 <template>
   <div class="container">
+
     <div v-if="visible">
+      <div style="display: flex; flex-direction: row; justify-content: center; align-items: center;">
       <h1>{{ displayedCity }}</h1>
-      <h2>{{ displayedTemp }}</h2>
-      <!-- TO-DO (4)
-          Show an icon on the screen that suggests the weather conditions (rainy, sunny etc)
-          (HINT: https://openweathermap.org/weather-conditions) 
-      -->
+      <button  @click="addToFavorites()" class="stared_button">&#11088;</button>
+      </div>
+      <h2>{{ displayedTemp }} &degC</h2>
+      <div class="imageContainer">
+      <img :src="displayedIcon">
+      </div>
     </div>
     <h2 v-else>Loading information...</h2>
     <!-- TO-DO (7)
@@ -65,21 +127,24 @@ function getCurrentLocationInformation() {
         where they can see the details of that city.
         You can also make a self-updating temperature display for this page as well.
     -->
-    <button v-for="city in favoriteCities">
-      {{ city }}
-    </button>
-    <!-- TO-DO (8)
-        Make it so that the user's favorite cities are persistent even once the app has been closed
-        and reopened again.
-        (HINT: write the array of cities to a file)
-    -->
+    <br>
+    <input v-model="searchedLocation" placeholder="City">
+    <br>
+    <button @click="getInformation()">Search weather</button>
+
+    <div>
+    <p>Current Position: {{computerLocation}} (lat:{{ computerLatitude }}; lng:{{computerLongitude}})</p>
+    <button  @click="useCurrentLocation()">Use Current Location</button>
+    </div>
+
+    <br>
+    <h2>Favorite Locations:</h2>
+    <div v-for="city in favoriteCities" @click="getInformation()">
+      <button @click="useSelectedLocation(city)">{{ city }}</button>
+      <button @click="removeLocation(city)">X</button>
+  </div>
   </div>
 </template>
-
-<!-- TO-DO (6)
-    Allow the user to search for a specific city and what the weather is like there.
-    You can choose to use a separate component for this. 
--->
 
 <style>
   .container {
@@ -88,9 +153,18 @@ function getCurrentLocationInformation() {
     align-items: center;
     justify-content: center;
   }
+  .stared_button{
+    height: 30px;
+    width: 30px;
+    padding: 0;
+  }
 
   .centered-icon {
     width: 50px;
     height: 50px;
+  }
+  .imageContainer{
+    height: 100px;
+    background-color: black;
   }
 </style>

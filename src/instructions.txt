@@ -1,0 +1,40 @@
+ /* TO-DO (1) DONE
+    Make a GET request (from Rust) to the Weather API and show the current temperature at these coordinates:
+      - latitude 36.71
+      - longitude -80.97
+    (HINT: https://openweathermap.org/current)
+  */
+
+   /* TO-DO (2) DONE
+    Make a request to find the coordinates of Târgu Mureș and then show the current temperature there.
+    (HINT: https://openweathermap.org/api/geocoding-api)
+  */
+
+
+  <!-- TO-DO (4) DONE
+          Show an icon on the screen that suggests the weather conditions (rainy, sunny etc)
+          (HINT: https://openweathermap.org/weather-conditions) 
+      -->
+
+<!-- TO-DO (6) DONE
+    Allow the user to search for a specific city and what the weather is like there.
+    You can choose to use a separate component for this. 
+-->      
+
+/* TO-DO (3) DONE
+    Using Geolocation API (in Typescript) and GET requests in Rust, show the user's current location
+    and the current temperature on the screen.
+    (HINT: https://developer.mozilla.org/en-US/docs/Web/API/Geolocation/getCurrentPosition)
+  */
+
+  <!-- TO-DO (8) DONE
+        Make it so that the user's favorite cities are persistent even once the app has been closed
+        and reopened again.
+        (HINT: write the array of cities to a file)
+    -->
+
+   /* TO-DO (5) DONE
+    Update the current location of the user and the current weather conditions every minute.
+    (HINT: use a separate thread in Rust that notifies the frontend to update the temperature;
+           and location display; you will need to use events: https://tauri.app/v1/guides/features/events/)
+  */  
