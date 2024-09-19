@@ -1,3 +1,5 @@
+# Update
+As of summer of 2024, the [Mozilla Geolocation API has been disabled](https://en.wikipedia.org/wiki/Mozilla_Location_Service), making the detection of system-wide desktop GPS coordonates impossible.
 # Tauri-Weather-App
 - project made in [IPWorkshop](https://www.ipworkshop.ro) 2023 summer camp
 - using Rust, Tauri and Vue
