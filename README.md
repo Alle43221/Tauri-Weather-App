@@ -5,7 +5,7 @@ As of summer of 2024, the [Mozilla Geolocation API has been disabled](https://en
 - using Rust, Tauri and Vue
 
 ## Features
-- real-time geolocation and weather with [OpenWeather](https://openweathermap.org/api)
+- real-time geolocation and weather with [OpenWeather](https://openweathermap.org/api) and Mozilla Location Service
 - locally saved favourite locations
 
 ![image](https://github.com/Alle43221/Tauri-Weather-App/assets/79206599/602f6047-d429-43b3-b795-3d51a457fec9)
